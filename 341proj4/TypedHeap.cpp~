@@ -1,0 +1,40 @@
+// cpp for TypedHeap
+
+#include "TypedHeap.h"
+
+//Insert the strings into the corresponding heaps
+void TypedHeap::insertToHeaps(vector<string> vec) {
+
+  //For each string in the vector provided
+  for (int i = 0; i < vec.size(); i++) {
+    //Marker for whether the 
+    bool checker = false;
+    for (int j = 0; j < vec[i].size(); j++) {
+      if (!isdigit(vec[i][j])) {
+	checker = true;
+      }
+    }
+    if (checker) {
+      stringHeap.insert(vec[i]);
+    } else {
+      intHeap.insert(stoi(vec[i]));
+    }
+  }
+}
+
+void TypedHeap::combineHeaps() {
+  intHeap.skewHeapMerge(stringHeap);
+  totalHeap.skewHeapMerge(intHeap);
+}
+
+void TypedHeap::printHeaps() const {
+  intHeap.dump();
+  stringHeap.dump();
+  totalHeap.dump();
+}
+
+void TypedHeap::changePriority(pri_fn pri) {
+  intHeap.setPriFn(pri);
+  stringHeap.setPriFn(pri);
+  totalHeap.setPriFn(pri);
+}

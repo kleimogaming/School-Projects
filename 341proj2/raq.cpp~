@@ -1,0 +1,130 @@
+// Nicholas Klein
+// CMSC 341 Section 01
+// Project 2 raq.cpp
+
+#include "raq.h"
+#include <cmath>
+#include <stdexcept>
+#include <iostream>
+
+RAQ::RAQ(std::vector<float> data) {
+  float sum = 0.0;
+  
+  for (int i = 0; i < data.size(); i++) {
+
+    for (int j = i; j < data.size(); j++) {
+      // If taking the sum of one number, just input the data.
+      if (i == j) {
+	sum = data[j];
+	m_storage.push_back(sum);
+	// Otherwise add the current data to the previous su
+      } else {
+	sum = data[j] + sum;
+	m_storage.push_back(sum);
+      }
+      
+    }
+
+    // Put the new vector onto the 2D vector sum table
+    // Clear the current temporary storage
+    m_sumTable.push_back(m_storage);
+    m_storage.clear();
+  }
+}
+
+float RAQ::query(int i, int j) const {
+  int actualIndex = j - i;
+  
+  float sum = m_sumTable[i][actualIndex];
+  float average = sum / (j - i + 1);
+  return average;
+}
+
+void RAQ::dump() const {
+  for (int i = 0; i < m_sumTable.size(); i++) {
+
+    for (int j = 0; j < m_sumTable[i].size(); j++) {
+
+      int actualIndex = i + j;
+      std::cout << "Sum of (" << i << "," << actualIndex << "): " << m_sumTable[i][j];
+      if (j == m_sumTable[i].size() - 1) {
+	std::cout << std::endl;
+      } else {
+	std::cout << "\t";
+      }
+    }
+  }
+}
+
+BlockRAQ::BlockRAQ(std::vector<float> data) {
+  for (int i = 0; i < data.size(); i++) {
+    m_data.push_back(data[i]);
+  }
+  
+  m_blockSize = (int) sqrt((float) m_data.size());
+
+  if (m_blockSize == 0) {
+    throw std::domain_error("Size of data is 0, can't perform averages of nothing.");
+  }
+  
+  m_specialSize = (m_data.size() % m_blockSize);
+  
+  if (m_specialSize == 0) {
+    m_specialSize = m_blockSize;
+  }
+
+  int blockCounter = 0;  // Keeps track of block summations.
+  m_blocks.push_back(0);
+  
+  for (int i = 0; i < m_data.size(); i++) {
+    if ((i != 0) && (i % m_blockSize == 0)) {
+      m_blocks.push_back(0);
+      blockCounter++;
+    }
+    m_blocks[blockCounter] += m_data[i];
+  }
+}
+
+float BlockRAQ::query(int i, int j) const {
+  if ((j < i) || (i < 0) || (i > m_data.size()) || (j > m_data.size())) {
+    throw std::domain_error("Given ranges are not acceptable.");
+  }
+  
+  float average = 0.0;
+  float dataCounter = 0;
+  int blockCounter = 0;
+  do {
+    if ((i % m_blockSize == 0) && (i + m_blockSize <= j)) {
+      blockCounter = i / m_blockSize;
+      average += m_blocks[blockCounter];
+      dataCounter += m_blockSize;
+      i += m_blockSize;
+    } else if ((i == (m_data.size() - m_specialSize)) && (j == m_data.size() - 1)) {
+      blockCounter = m_blocks.size() - 1;
+      average += m_blocks[blockCounter];
+      dataCounter += m_specialSize;
+      i = j + 1;
+    } else {
+      average += m_data[i];
+      dataCounter++;
+      i++;
+    }
+  } while (i <= j);
+
+  average = average / dataCounter;
+
+  return average;
+}
+
+void BlockRAQ::dump() const {
+  std::cout << "Number of blocks: " << m_blocks.size() << std::endl;
+  for (int i = 0; i < m_blocks.size(); i++) {
+    if (i < m_blocks.size() - 1) {
+      std::cout << "Block " << i << "- " << "Block Size: " << m_blockSize << std::endl;
+      std::cout << "Block " << i << " Sum: " << m_blocks[i] << std::endl;
+    } else if (i == m_blocks.size() - 1) {
+      std::cout << "Block " << i << "- " << "Block Size: " << m_specialSize << std::endl;
+      std::cout << "Block " << i << " Sum: " << m_blocks[i] << std::endl;
+    }
+  }
+}

@@ -1,0 +1,187 @@
+// cpp file for SkewHeap
+
+#include "SkewHeap.h"
+
+SkewHeap::SkewHeap(pri_fn pri) {
+  priority = pri;
+  m_heap = nullptr;
+}
+
+SkewHeap::~SkewHeap(){
+  while (!empty()) {
+    removeTop();
+  }
+  m_heap = nullptr;
+}
+
+SkewHeap::SkewHeap(const SkewHeap& rhs) {
+  priority = rhs.priority;
+  m_heap = copyHelp(rhs.m_heap);
+}
+
+const SkewHeap& SkewHeap::operator=(const SkewHeap& rhs) {
+  while (!empty()) {
+    removeTop();
+  }
+  m_heap = nullptr;
+
+  priority = rhs.priority;
+  m_heap = copyHelp(rhs.m_heap);
+
+  return *this;
+}
+
+Node* SkewHeap::copyHelp(Node* copyThis) {
+  if (copyThis == nullptr) {
+    return nullptr;
+  }
+  
+  Node *thisNode = nullptr;
+  if (copyThis -> tagged_union == ISINT) {
+    thisNode = new Node(copyThis -> data_int);
+  } else {
+    thisNode = new Node(copyThis -> data_string);
+  }
+
+  thisNode -> left = copyHelp(copyThis -> left);
+  thisNode -> right = copyHelp(copyThis -> right);
+
+  return thisNode;
+}
+
+pri_fn SkewHeap::getPriFn() const {
+  return priority;
+}
+
+void SkewHeap::setPriFn(pri_fn pri) {
+  priority = pri;
+
+  if (m_heap == nullptr) {
+    return;
+  }
+
+  SkewHeap tempHeap(pri);
+
+  Node *temp = m_heap;
+
+  while (temp != nullptr) {
+    if (temp -> tagged_union == ISINT) {
+      tempHeap.insert(temp -> data_int);
+    } else {
+      tempHeap.insert(temp -> data_string);
+    }
+    removeTop();
+    temp = m_heap;
+  }
+
+  m_heap = nullptr;
+  m_heap = copyHelp(tempHeap.m_heap);
+}
+
+bool SkewHeap::empty() const {
+  if (m_heap == nullptr) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void SkewHeap::insert(string data) {
+  Node *tempNew = new Node(data);
+  Node *tempOld = m_heap;
+  m_heap = mergeHelp(tempOld, tempNew);
+}
+
+void SkewHeap::insert(int data) {
+  Node *tempNew = new Node(data);
+  Node *tempOld = m_heap;
+  m_heap = mergeHelp(tempOld, tempNew);
+
+}
+
+Node* SkewHeap::front() const {
+  return m_heap;
+}
+
+void SkewHeap::removeTop() {
+  Node *leftNode = m_heap -> left;
+  Node *rightNode = m_heap -> right;
+
+  delete m_heap;
+  m_heap = nullptr;
+
+  m_heap = mergeHelp(leftNode, rightNode);
+}
+
+void SkewHeap::skewHeapMerge(SkewHeap& sh) {
+  if (m_heap == sh.m_heap) {
+    return;
+  }
+
+  pri_fn temp = sh.priority;
+
+  if (temp != priority) {
+    throw domain_error("Priorities are not the same!");
+  }
+  
+  m_heap = mergeHelp(m_heap, sh.m_heap);
+  sh.m_heap = nullptr;
+}
+
+Node* SkewHeap::mergeHelp(Node* greater, Node* lesser) {
+  if (greater == nullptr) {
+    return lesser;
+  } else if (lesser == nullptr) {
+    return greater;
+  }
+
+  if (priority(greater) < priority(lesser)) {
+    swap(greater, lesser);
+  }
+
+  swap(greater -> left, greater -> right);
+
+  greater -> left = mergeHelp(greater -> left, lesser);
+
+  return greater;
+}
+
+void SkewHeap::inorder() const {
+  inorderHelp(m_heap);
+}
+
+void SkewHeap::inorderHelp(Node *printThis) const {
+  if (printThis == nullptr) {
+    return;
+  }
+
+  cout << "(";
+  
+  inorderHelp(printThis->left);
+
+  if (printThis -> tagged_union == ISINT) {
+    cout << printThis -> data_int;
+  } else {
+    cout << printThis -> data_string;
+  }
+
+  inorderHelp(printThis -> right);
+
+  cout << ")";
+}
+
+void SkewHeap::dump() const {
+  SkewHeap dumpThis(*this);
+
+  while (!dumpThis.empty()) {
+    cout << "Data is:" << setw(8);
+    if (dumpThis.m_heap -> tagged_union == ISINT) {
+      cout << dumpThis.m_heap -> data_int;
+    } else {
+      cout << dumpThis.m_heap -> data_string;
+    }
+    cout << setw(25) << "Priority is:" << setw(8) << priority(dumpThis.m_heap) << endl;
+
+    dumpThis.removeTop();
+  }
+}
